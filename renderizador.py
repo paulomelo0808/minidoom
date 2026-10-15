@@ -18,6 +18,8 @@ COR_CHAO = (75, 65, 60)
 
 def desenhar_fps(tela, posicao_jogador, angulo_jogador):
 
+    profundidades = [math.inf] * NUM_COLUNAS
+    
     #Desenhar  o teto
     tela.fill(COR_TETO)
 
@@ -52,10 +54,8 @@ def desenhar_fps(tela, posicao_jogador, angulo_jogador):
 
         _, _, distancia = resultado
 
-        distancia_perpendicular = max(
-            0.001,
-            distancia * math.cos(desvio),
-        )
+        distancia_perpendicular = max( 0.001, distancia * math.cos(desvio),)
+        profundidades[coluna] = distancia_perpendicular
 
         altura_parede = int(DISTANCIA_PROJECAO / distancia_perpendicular) #Altura das paredes projetadas
         
@@ -85,3 +85,5 @@ def desenhar_fps(tela, posicao_jogador, angulo_jogador):
                 altura_parede,
             ),
         )
+
+    return profundidades

@@ -26,6 +26,8 @@ from raycasting import lancar_raio
 from renderizador import desenhar_fps
 from jogador import atualizar_posicao
 from arma import (criar_sprite_arma, desenhar_arma, desenhar_mira, desenhar_flash,)
+from inimigos import criar_inimigos, processar_disparo
+from renderizador_inimigos import (criar_sprite_inimigo, desenhar_inimigos,)
 
 def main():
 
@@ -35,6 +37,7 @@ def main():
     pygame.display.set_caption(TITULO)
 
     sprite_arma = criar_sprite_arma()
+    sprite_inimigo = criar_sprite_inimigo()
 
     relogio = pygame.time.Clock()
     executando = True
@@ -48,6 +51,8 @@ def main():
 
     angulo_jogador = ANGULO_INICIAL
     posicao_jogador = POSICAO_INICIAL
+
+    inimigos = criar_inimigos()
 
     tempo_ate_proximo_tiro = 0.0
     tempo_efeito_tiro = 0.0
@@ -86,8 +91,17 @@ def main():
                 ):
 
                     tempo_ate_proximo_tiro = INTERVALO_ENTRE_TIROS
-
                     tempo_efeito_tiro = DURACAO_EFEITO_TIRO
+
+                    alvo = processar_disparo (posicao_jogador, angulo_jogador, inimigos)
+
+                    if alvo is None:
+                        print("DISPARO: nunhum inimigo atingido")
+                    else:
+                        print("INIMIGO ATINGIDO!" f"Vida restante: {alvo['vida']}")
+
+                        if not alvo ["ativo"]:
+                            print("INIMIGO ELIMINADO!")
 
 
         # Lê o deslocamento horizontal do mouse
@@ -118,12 +132,22 @@ def main():
                 tela,
                 posicao_jogador,
                 angulo_jogador,
+                inimigos,
             )
         else:
-            desenhar_fps(
+            profundidades = desenhar_fps(
                 tela,
                 posicao_jogador,
                 angulo_jogador,
+            )
+            
+            desenhar_inimigos(
+                tela,
+                inimigos,
+                posicao_jogador,
+                angulo_jogador,
+                sprite_inimigo,
+                profundidades,
             )
 
             recuo = 0
@@ -145,7 +169,7 @@ def main():
     pygame.quit()
 
 
-def desenhar_mapa(tela, posicao_jogador, angulo_jogador):
+def desenhar_mapa(tela, posicao_jogador, angulo_jogador, inimigos):
 
     # Calcula as dimensões do mapa em pixels
     largura_mapa = len(MAPA[0]) * TAMANHO_CELULA
@@ -186,6 +210,23 @@ def desenhar_mapa(tela, posicao_jogador, angulo_jogador):
                 1,
             )
 
+    for inimigo in inimigos:
+        if not inimigo["ativo"]:
+            continue
+
+        inimigo_x, inimigo_y = inimigo["posicao"]
+
+        pixel_inimigo_x = ( origem_x + inimigo_x * TAMANHO_CELULA)
+
+        pixel_inimigo_y = (origem_y + inimigo_y * TAMANHO_CELULA)
+
+        pygame.draw.circle( tela, (210, 70, 70),(
+                                                    int(pixel_inimigo_x),
+                                                    int(pixel_inimigo_y),
+                                                ),
+                                                8,
+        )
+    
     # Posição inicial do jogador
     jogador_x, jogador_y = posicao_jogador
 
