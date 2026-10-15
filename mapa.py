@@ -16,6 +16,6 @@ MAPA = (
 )
 
 LARGURA_MAPA = len(MAPA[0])
-Altura_MAPA = len(MAPA)
+ALTURA_MAPA = len(MAPA)
 
 POSICAO_INICIAL = (1.5, 1.5)
