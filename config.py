@@ -22,3 +22,12 @@ VELOCIDADE_ROTACAO = math.radians(120) #Velocidade em radianos por seg
 VELOCIDADE_MOVIMENTO = 3.0 #Velocidade do jogador em celula por seg
 SENSIBILIDADE_MOUSE = 0.003
 RAIO_JOGADOR = 0.20
+
+#Arma
+ESCALA_ARMA = 3
+COR_MIRA = (240, 220, 180)
+
+#Sistema de disparos
+INTERVALO_ENTRE_TIROS = 0.35
+DURACAO_EFEITO_TIRO = 0.12
+RECUO_MAXIMO = 18
