@@ -33,6 +33,7 @@ from hud import (desenhar_hud, desenhar_derrota, desenhar_vitoria,)
 from spawn import (criar_inimigos_aleatorios, criar_estado_spawn, atualizar_spawn,)
 from objetivos import (POSICAO_CHAVE, POSICAO_SAIDA, verificar_coleta_chave, verificar_vitoria,)
 from renderizador_chave import (criar_sprite_chave, desenhar_chave,)
+from menu import (OPCOES_MENU, desenhar_menu, desenhar_controles, desenhar_pausa, OPCOES_PAUSA)
 
 
 def main():
@@ -51,9 +52,14 @@ def main():
     executando = True
     mostrar_mapa = False
 
-    mouse_capturado = True
-    pygame.event.set_grab(True)
-    pygame.mouse.set_visible(False) #esconde o cursor
+    estado_jogo = "MENU"
+    opcao_menu = 0
+    opcao_pausa = 0
+    reiniciar_pendente = False
+
+    mouse_capturado = False
+    pygame.event.set_grab(False)
+    pygame.mouse.set_visible(True)
     pygame.mouse.get_rel()
 
     angulo_jogador = ANGULO_INICIAL
@@ -77,18 +83,163 @@ def main():
 
         delta_tempo = min(relogio.tick(FPS) / 1000.0, 0.05)
 
-        tempo_ate_proximo_tiro = max(0.0, tempo_ate_proximo_tiro - delta_tempo,)
-        tempo_efeito_tiro = max(0.0, tempo_efeito_tiro - delta_tempo,)
+        # Atualiza os temporizadores apenas durante a partida
+        if (
+            estado_jogo == "JOGANDO"
+            and vida_jogador > 0
+            and not venceu
+        ):
+        
+            tempo_ate_proximo_tiro = max(
+                0.0,
+                tempo_ate_proximo_tiro - delta_tempo,
+            )
+        
+            tempo_efeito_tiro = max(
+                0.0,
+                tempo_efeito_tiro - delta_tempo,
+            )
 
         # Eventos
         for evento in pygame.event.get():
+
             if evento.type == pygame.QUIT:
                 executando = False
+                continue
+
+            # Eventos do menu e da tela de controles
+            if estado_jogo in ("MENU", "CONTROLES"):
+
+                if evento.type == pygame.KEYDOWN:
+
+                    if estado_jogo == "MENU":
+
+                        # Navega para a opção anterior
+                        if evento.key == pygame.K_UP:
+
+                            opcao_menu = (
+                                opcao_menu - 1
+                            ) % len(OPCOES_MENU)
+
+                        # Navega para a próxima opção
+                        elif evento.key == pygame.K_DOWN:
+
+                            opcao_menu = (
+                                opcao_menu + 1
+                            ) % len(OPCOES_MENU)
+
+                        # Confirma a opção
+                        elif evento.key in (
+                            pygame.K_RETURN,
+                            pygame.K_KP_ENTER,
+                        ):
+
+                            if opcao_menu == 0:
+                                reiniciar_pendente = True
+
+                                # Iniciar jogo
+                                estado_jogo = "JOGANDO"
+                                mouse_capturado = True
+
+                                pygame.event.set_grab(True)
+                                pygame.mouse.set_visible(False)
+                                pygame.mouse.get_rel()
+
+                            elif opcao_menu == 1:
+
+                                # Abrir controles
+                                estado_jogo = "CONTROLES"
+
+                            elif opcao_menu == 2:
+
+                                # Sair do jogo
+                                executando = False
+
+                    elif estado_jogo == "CONTROLES":
+
+                        if evento.key in (
+                            pygame.K_ESCAPE,
+                            pygame.K_RETURN,
+                            pygame.K_KP_ENTER,
+                        ):
+
+                            estado_jogo = "MENU"
+
+                # Impede que eventos do menu cheguem ao jogo
+                continue
+
+            
+            
+            # Eventos do menu de pausa
+            if estado_jogo == "PAUSADO":
+
+                if evento.type == pygame.KEYDOWN:
+
+                    # Opção anterior
+                    if evento.key == pygame.K_UP:
+                        opcao_pausa = (
+                            opcao_pausa - 1
+                        ) % len(OPCOES_PAUSA)
+
+                    # Próxima opção
+                    elif evento.key == pygame.K_DOWN:
+                        opcao_pausa = (
+                            opcao_pausa + 1
+                        ) % len(OPCOES_PAUSA)
+
+                    # Esc continua a partida
+                    elif evento.key == pygame.K_ESCAPE:
+                        estado_jogo = "JOGANDO"
+                        mouse_capturado = True
+
+                        pygame.event.set_grab(True)
+                        pygame.mouse.set_visible(False)
+                        pygame.mouse.get_rel()
+
+                    # Confirma a opção selecionada
+                    elif evento.key in (
+                        pygame.K_RETURN,
+                        pygame.K_KP_ENTER,
+                    ):
+
+                        if opcao_pausa == 0:
+                            # Continuar
+                            estado_jogo = "JOGANDO"
+                            mouse_capturado = True
+
+                            pygame.event.set_grab(True)
+                            pygame.mouse.set_visible(False)
+                            pygame.mouse.get_rel()
+
+                        elif opcao_pausa == 1:
+                            # Reiniciar partida
+                            reiniciar_pendente = True
+
+                        elif opcao_pausa == 2:
+                            # Voltar ao menu principal
+                            estado_jogo = "MENU"
+                            opcao_menu = 0
+                            mouse_capturado = False
+
+                            pygame.event.set_grab(False)
+                            pygame.mouse.set_visible(True)
+                            pygame.mouse.get_rel()
+
+                # Bloqueia comandos da partida na pausa
+                continue
+
+
+
+            # Eventos normais da partida
             if evento.type == pygame.KEYDOWN:
 
 
-                # Reinicia após a derrota
-                if evento.key == pygame.K_r and (vida_jogador == 0 or venceu):
+
+                # Solicita reinício após vitória ou derrota
+                if evento.key == pygame.K_r and (
+                    vida_jogador == 0 or venceu
+                ):
+                    reiniciar_pendente = True
 
                     vida_jogador = VIDA_MAXIMA_JOGADOR
 
@@ -97,7 +248,11 @@ def main():
 
                     inimigos = criar_inimigos_aleatorios(posicao_jogador)
                     estado_spawn = criar_estado_spawn()
+
                     tem_chave = False
+
+                    venceu = False
+                    estado_jogo = "JOGANDO"
 
                     tempo_ate_proximo_tiro = 0.0
                     tempo_efeito_tiro = 0.0
@@ -113,12 +268,19 @@ def main():
                 elif evento.key == pygame.K_TAB:
                     mostrar_mapa = not mostrar_mapa
 
-                # Libera ou captura o cursor
-                elif evento.key == pygame.K_ESCAPE and vida_jogador > 0 and not venceu:
-                    mouse_capturado = not mouse_capturado
-                    pygame.event.set_grab(mouse_capturado)
-                    pygame.mouse.set_visible(not mouse_capturado)
-                    # Descarta movimentos acumulados
+                elif (
+                    evento.key == pygame.K_ESCAPE
+                    and estado_jogo == "JOGANDO"
+                    and vida_jogador > 0
+                    and not venceu
+                ):
+                    estado_jogo = "PAUSADO"
+                    opcao_pausa = 0
+                    
+                    mouse_capturado = False
+                
+                    pygame.event.set_grab(False)
+                    pygame.mouse.set_visible(True)
                     pygame.mouse.get_rel()
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
@@ -148,7 +310,13 @@ def main():
 
         deslocamento_x, _ = pygame.mouse.get_rel()
 
-        if mouse_capturado and vida_jogador > 0 and not venceu:            # Atualiza a direção da câmera
+        if (
+            estado_jogo == "JOGANDO"
+            and mouse_capturado
+            and vida_jogador > 0
+            and not venceu
+        ):
+            
             angulo_jogador += (deslocamento_x * SENSIBILIDADE_MOUSE)
             angulo_jogador %= 2 * math.pi
 
@@ -215,6 +383,44 @@ def main():
                 print("O jogador encontrou a chave e alcancou a saida.")
 
 
+        
+        # Executa o reinício solicitado
+        if reiniciar_pendente:
+
+            # Restaura jogador
+            posicao_jogador = POSICAO_INICIAL
+            angulo_jogador = ANGULO_INICIAL
+            vida_jogador = VIDA_MAXIMA_JOGADOR
+
+            # Restaura inimigos e geração
+            inimigos = criar_inimigos_aleatorios(
+                posicao_jogador
+            )
+            estado_spawn = criar_estado_spawn()
+
+            # Restaura objetivos
+            tem_chave = False
+            venceu = False
+
+            # Restaura efeitos da arma
+            tempo_ate_proximo_tiro = 0.0
+            tempo_efeito_tiro = 0.0
+
+            # Restaura visualização
+            mostrar_mapa = False
+
+            # Inicia a partida
+            estado_jogo = "JOGANDO"
+            mouse_capturado = True
+
+            pygame.event.set_grab(True)
+            pygame.mouse.set_visible(False)
+            pygame.mouse.get_rel()
+
+            # A solicitação foi atendida
+            reiniciar_pendente = False
+
+
 
         if (vida_jogador == 0 or venceu) and mouse_capturado:
 
@@ -224,6 +430,31 @@ def main():
             pygame.mouse.set_visible(True)
             pygame.mouse.get_rel()
 
+        
+        # Renderiza o menu principal
+        if estado_jogo == "MENU":
+
+            desenhar_menu(
+                tela,
+                opcao_menu,
+                fonte_grande,
+                fonte_pequena,
+            )
+
+            pygame.display.flip()
+            continue
+
+        # Renderiza a tela de controles
+        if estado_jogo == "CONTROLES":
+
+            desenhar_controles(
+                tela,
+                fonte_grande,
+                fonte_pequena,
+            )
+
+            pygame.display.flip()
+            continue
 
 
         # Renderização
@@ -317,6 +548,7 @@ def main():
             fonte_hud,
         )
 
+        
         # Tela de vitória
         if venceu:
             desenhar_vitoria(
@@ -331,6 +563,15 @@ def main():
                 tela,
                 fonte_grande,
                 fonte_pequena,
+            )
+
+        # Interface de pausa
+        if estado_jogo == "PAUSADO":
+            desenhar_pausa(
+                tela,
+                fonte_grande,
+                fonte_pequena,
+                opcao_pausa,
             )
 
         pygame.display.flip()
