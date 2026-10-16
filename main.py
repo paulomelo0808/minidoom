@@ -19,6 +19,7 @@ from config import (
     INTERVALO_ENTRE_TIROS,
     DURACAO_EFEITO_TIRO,
     RECUO_MAXIMO,
+    VIDA_MAXIMA_JOGADOR,
 )
 
 from mapa import MAPA, POSICAO_INICIAL
@@ -26,8 +27,14 @@ from raycasting import lancar_raio
 from renderizador import desenhar_fps
 from jogador import atualizar_posicao
 from arma import (criar_sprite_arma, desenhar_arma, desenhar_mira, desenhar_flash,)
-from inimigos import criar_inimigos, processar_disparo
+from inimigos import (
+    criar_inimigos,
+    processar_disparo,
+    atualizar_inimigos,
+    atualizar_ataques_inimigos,
+)
 from renderizador_inimigos import (criar_sprite_inimigo, desenhar_inimigos,)
+from hud import desenhar_hud, desenhar_derrota
 
 def main():
 
@@ -43,7 +50,6 @@ def main():
     executando = True
     mostrar_mapa = False
 
-    #Configurações do mouse
     mouse_capturado = True
     pygame.event.set_grab(True)
     pygame.mouse.set_visible(False) #esconde o cursor
@@ -57,6 +63,12 @@ def main():
     tempo_ate_proximo_tiro = 0.0
     tempo_efeito_tiro = 0.0
 
+    vida_jogador = VIDA_MAXIMA_JOGADOR
+    
+    fonte_hud = pygame.font.Font(None, 32)
+    fonte_grande = pygame.font.Font(None, 72)
+    fonte_pequena = pygame.font.Font(None, 36)
+
     while executando:
 
         delta_tempo = min(relogio.tick(FPS) / 1000.0, 0.05)
@@ -69,11 +81,34 @@ def main():
             if evento.type == pygame.QUIT:
                 executando = False
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_TAB:
+
+                
+                # Reinicia após a derrota
+                if evento.key == pygame.K_r and vida_jogador == 0:
+
+                    vida_jogador = VIDA_MAXIMA_JOGADOR
+
+                    posicao_jogador = POSICAO_INICIAL
+                    angulo_jogador = ANGULO_INICIAL
+
+                    inimigos = criar_inimigos()
+
+                    tempo_ate_proximo_tiro = 0.0
+                    tempo_efeito_tiro = 0.0
+
+                    mostrar_mapa = False
+                    mouse_capturado = True
+
+                    pygame.event.set_grab(True)
+                    pygame.mouse.set_visible(False)
+                    pygame.mouse.get_rel()
+
+                    
+                elif evento.key == pygame.K_TAB:
                     mostrar_mapa = not mostrar_mapa
 
                 # Libera ou captura o cursor
-                elif evento.key == pygame.K_ESCAPE:
+                elif evento.key == pygame.K_ESCAPE and vida_jogador > 0:
                     mouse_capturado = not mouse_capturado
                     pygame.event.set_grab(mouse_capturado)
                     pygame.mouse.set_visible(not mouse_capturado)
@@ -88,6 +123,7 @@ def main():
                     and mouse_capturado
                     and not mostrar_mapa
                     and tempo_ate_proximo_tiro <= 0
+                    and vida_jogador > 0
                 ):
 
                     tempo_ate_proximo_tiro = INTERVALO_ENTRE_TIROS
@@ -104,25 +140,43 @@ def main():
                             print("INIMIGO ELIMINADO!")
 
 
-        # Lê o deslocamento horizontal do mouse
         deslocamento_x, _ = pygame.mouse.get_rel()
 
-        if mouse_capturado:
-            # Atualiza a direção da câmera
+        if mouse_capturado and vida_jogador > 0:            # Atualiza a direção da câmera
             angulo_jogador += (deslocamento_x * SENSIBILIDADE_MOUSE)
-            # Mantém o ângulo entre 0 e 2*pi
             angulo_jogador %= 2 * math.pi
 
-            # Leitura contínua do teclado
             teclas = pygame.key.get_pressed()
 
-            # Atualiza a posição do jogador
             posicao_jogador = atualizar_posicao(
                 posicao_jogador,
                 angulo_jogador,
                 teclas,
                 delta_tempo,
             )
+
+            atualizar_inimigos(
+                inimigos, 
+                posicao_jogador,
+                delta_tempo,
+            )
+
+            dano_recebido = atualizar_ataques_inimigos( inimigos, posicao_jogador, delta_tempo,)
+
+            if dano_recebido > 0:
+                vida_jogador = max(0, vida_jogador - dano_recebido,)
+                print(f"Jogador recebeu {dano_recebido} de dano."
+                    f"Vida restante: {vida_jogador}")
+
+
+        if vida_jogador == 0 and mouse_capturado:
+
+            mouse_capturado = False
+
+            pygame.event.set_grab(False)
+            pygame.mouse.set_visible(True)
+            pygame.mouse.get_rel()
+
 
 
         # Renderização
@@ -150,16 +204,44 @@ def main():
                 profundidades,
             )
 
+
             recuo = 0
 
             if tempo_efeito_tiro > 0:
-                recuo = int(RECUO_MAXIMO * tempo_efeito_tiro / DURACAO_EFEITO_TIRO)
+                recuo = int(
+                    RECUO_MAXIMO
+                    * tempo_efeito_tiro
+                    / DURACAO_EFEITO_TIRO
+                )
 
-            desenhar_arma(tela, sprite_arma, recuo,)
+            desenhar_arma(
+                tela,
+                sprite_arma,
+                recuo,
+            )
 
             if tempo_efeito_tiro > 0:
-                desenhar_flash(tela, sprite_arma, recuo,)
+                desenhar_flash(
+                    tela,
+                    sprite_arma,
+                    recuo,
+                )
+
             desenhar_mira(tela)
+
+
+        desenhar_hud(
+            tela,
+            vida_jogador,
+            fonte_hud,
+        )
+
+        if vida_jogador <= 0:
+            desenhar_derrota(
+                tela,
+                fonte_grande,
+                fonte_pequena,
+            )
 
         pygame.display.flip()
 
