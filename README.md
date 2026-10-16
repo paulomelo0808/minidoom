@@ -4,7 +4,7 @@ Projeto acadêmico desenvolvido para a disciplina de **Computação Gráfica**, 
 
 Apesar da aparência tridimensional, o cenário é construído a partir de um **mapa bidimensional**. A técnica de **raycasting** projeta as paredes na tela, produzindo um efeito de perspectiva conhecido como *2.5D*. O projeto possui uma única fase em formato de labirinto.
 
-- **Autor:** Paulo Melo
+- **Autor:** Paulo Melo, Victor Aguiar, Ciça Lima e Ryan
 - **Disciplina:** Computação Gráfica
 - **Professor:** Pedro Cândido
 - **Repositório:** https://github.com/paulomelo0808/minidoom
