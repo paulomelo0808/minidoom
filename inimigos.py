@@ -7,18 +7,45 @@ from navegacao import calcular_caminho
 from colisoes import posicao_livre
 
 
+def criar_inimigo(posicao):
+    return {
+        "posicao": posicao,
+        "vida": 3,
+        "ativo": True,
+        "proxima_celula": None,
+        "recarga_ataque": 0.0,
+    }
+
 def criar_inimigos():
+
     inimigos = [
         {
-            "posicao": (5.5, 1.5), 
+            "posicao": (5.5, 1.5),
             "vida": 3,
             "ativo": True,
             "proxima_celula": None,
             "recarga_ataque": 0.0,
-        }
+        },
+
+        {
+            "posicao": (9.5, 5.5),
+            "vida": 3,
+            "ativo": True,
+            "proxima_celula": None,
+            "recarga_ataque": 0.0,
+        },
+
+        {
+            "posicao": (3.5, 9.5),
+            "vida": 3,
+            "ativo": True,
+            "proxima_celula": None,
+            "recarga_ataque": 0.0,
+        },
     ]
 
     return inimigos
+
 
 
 def processar_disparo(posicao_jogador, angulo_jogador, inimigos):

@@ -83,3 +83,56 @@ def desenhar_derrota(tela, fonte_grande, fonte_pequena):
 
     tela.blit(titulo, titulo_rect)
     tela.blit(instrucao, instrucao_rect)
+
+
+
+def desenhar_vitoria(tela, fonte_grande, fonte_pequena):
+    """Exibe a tela de vitória sobre o cenário."""
+
+    # Cria uma camada semitransparente
+    camada = pygame.Surface(
+        (LARGURA, ALTURA),
+        pygame.SRCALPHA,
+    )
+
+    camada.fill((0, 0, 0, 190))
+    tela.blit(camada, (0, 0))
+
+    # Mensagem principal
+    titulo = fonte_grande.render(
+        "VOCE VENCEU!",
+        True,
+        (245, 205, 80),
+    )
+
+    # Mensagem secundária
+    mensagem = fonte_pequena.render(
+        "Voce encontrou a chave e escapou!",
+        True,
+        (235, 235, 235),
+    )
+
+    # Instrução de reinício
+    reiniciar = fonte_pequena.render(
+        "Pressione R para jogar novamente",
+        True,
+        (190, 190, 190),
+    )
+
+    # Centraliza os textos
+    titulo_rect = titulo.get_rect(
+        center=(LARGURA // 2, ALTURA // 2 - 65)
+    )
+
+    mensagem_rect = mensagem.get_rect(
+        center=(LARGURA // 2, ALTURA // 2)
+    )
+
+    reiniciar_rect = reiniciar.get_rect(
+        center=(LARGURA // 2, ALTURA // 2 + 55)
+    )
+
+    # Desenha os textos
+    tela.blit(titulo, titulo_rect)
+    tela.blit(mensagem, mensagem_rect)
+    tela.blit(reiniciar, reiniciar_rect)
