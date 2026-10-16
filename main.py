@@ -20,6 +20,8 @@ from config import (
     DURACAO_EFEITO_TIRO,
     RECUO_MAXIMO,
     VIDA_MAXIMA_JOGADOR,
+    DURACAO_EFEITO_DANO,
+    DURACAO_FLASH_INIMIGO,
 )
 
 from mapa import MAPA, POSICAO_INICIAL
@@ -34,6 +36,7 @@ from spawn import (criar_inimigos_aleatorios, criar_estado_spawn, atualizar_spaw
 from objetivos import (POSICAO_CHAVE, POSICAO_SAIDA, verificar_coleta_chave, verificar_vitoria,)
 from renderizador_chave import (criar_sprite_chave, desenhar_chave,)
 from menu import (OPCOES_MENU, desenhar_menu, desenhar_controles, desenhar_pausa, OPCOES_PAUSA)
+from efeitos import desenhar_efeito_dano
 
 
 def main():
@@ -47,6 +50,11 @@ def main():
     sprite_inimigo = criar_sprite_inimigo()
     sprite_chave = criar_sprite_chave()
     textura_porta = criar_textura_porta()
+
+    camada_dano = pygame.Surface(
+        (LARGURA, ALTURA),
+        pygame.SRCALPHA,
+    )
 
     relogio = pygame.time.Clock()
     executando = True
@@ -71,6 +79,7 @@ def main():
 
     tempo_ate_proximo_tiro = 0.0
     tempo_efeito_tiro = 0.0
+    tempo_efeito_dano = 0.0
 
     vida_jogador = VIDA_MAXIMA_JOGADOR
     venceu = False
@@ -99,6 +108,23 @@ def main():
                 0.0,
                 tempo_efeito_tiro - delta_tempo,
             )
+
+            tempo_efeito_dano = max(
+                0.0,
+                tempo_efeito_dano - delta_tempo,
+            )
+
+            tempo_efeito_dano = max(
+                0.0,
+                tempo_efeito_dano - delta_tempo,
+            )
+
+            # Atualiza as piscadas dos inimigos
+            for inimigo in inimigos:
+                inimigo["tempo_flash"] = max(
+                    0.0,
+                    inimigo.get("tempo_flash", 0.0) - delta_tempo,
+                )
 
         # Eventos
         for evento in pygame.event.get():
@@ -297,12 +323,14 @@ def main():
                     tempo_ate_proximo_tiro = INTERVALO_ENTRE_TIROS
                     tempo_efeito_tiro = DURACAO_EFEITO_TIRO
 
-                    alvo = processar_disparo (posicao_jogador, angulo_jogador, inimigos)
+                    alvo = processar_disparo(posicao_jogador, angulo_jogador, inimigos)
 
                     if alvo is None:
                         print("DISPARO: nunhum inimigo atingido")
                     else:
                         print("INIMIGO ATINGIDO!" f"Vida restante: {alvo['vida']}")
+                        if alvo["ativo"]:
+                            alvo["tempo_flash"] = DURACAO_FLASH_INIMIGO
 
                         if not alvo ["ativo"]:
                             print("INIMIGO ELIMINADO!")
@@ -352,6 +380,8 @@ def main():
                 print(f"Jogador recebeu {dano_recebido} de dano."
                     f"Vida restante: {vida_jogador}")
 
+                tempo_efeito_dano = DURACAO_EFEITO_DANO
+
             if vida_jogador > 0:
 
                 novo_inimigo = atualizar_spawn(
@@ -382,34 +412,27 @@ def main():
                 print("FASE CONCLUIDA!")
                 print("O jogador encontrou a chave e alcancou a saida.")
 
-
         
-        # Executa o reinício solicitado
         if reiniciar_pendente:
 
-            # Restaura jogador
             posicao_jogador = POSICAO_INICIAL
             angulo_jogador = ANGULO_INICIAL
             vida_jogador = VIDA_MAXIMA_JOGADOR
 
-            # Restaura inimigos e geração
             inimigos = criar_inimigos_aleatorios(
                 posicao_jogador
             )
             estado_spawn = criar_estado_spawn()
 
-            # Restaura objetivos
             tem_chave = False
             venceu = False
 
-            # Restaura efeitos da arma
             tempo_ate_proximo_tiro = 0.0
             tempo_efeito_tiro = 0.0
+            tempo_efeito_dano = 0.0
 
-            # Restaura visualização
             mostrar_mapa = False
 
-            # Inicia a partida
             estado_jogo = "JOGANDO"
             mouse_capturado = True
 
@@ -417,7 +440,6 @@ def main():
             pygame.mouse.set_visible(False)
             pygame.mouse.get_rel()
 
-            # A solicitação foi atendida
             reiniciar_pendente = False
 
 
@@ -518,6 +540,18 @@ def main():
                 )
 
             desenhar_mira(tela)
+
+            if (
+                estado_jogo == "JOGANDO"
+                and vida_jogador > 0
+                and tempo_efeito_dano > 0
+            ):
+
+                desenhar_efeito_dano(
+                    tela,
+                    camada_dano,
+                    tempo_efeito_dano,
+                )
 
         # Indicador de chave no HUD
         if tem_chave:

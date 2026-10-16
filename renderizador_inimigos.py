@@ -2,7 +2,7 @@
 import math
 import pygame
 
-from config import LARGURA, ALTURA, CAMPO_VISAO
+from config import LARGURA, ALTURA, CAMPO_VISAO, DURACAO_FLASH_INIMIGO
 from renderizador import (
     DISTANCIA_PROJECAO,
     LARGURA_COLUNA,
@@ -162,7 +162,36 @@ def desenhar_inimigos(
             (largura_sprite, altura_sprite),
         )
 
-        # Descobre quais colunas da tela o sprite ocupa
+
+
+
+        # Inimigo pisca três vezes quando recebe dano
+        tempo_flash = inimigo.get("tempo_flash", 0.0)
+
+        if tempo_flash > 0:
+
+            # Tempo transcorrido desde o disparo
+            tempo_decorrido = (
+                DURACAO_FLASH_INIMIGO - tempo_flash
+            )
+
+            # Alterna entre branco e normal a cada 0.15 s
+            intervalo_piscada = 0.15
+
+            fase = int(
+                tempo_decorrido / intervalo_piscada
+            )
+
+            # Fases pares: branco
+            # Fases ímpares: sprite original
+            if fase % 2 == 0:
+
+                sprite_escalado.fill(
+                    (200, 200, 200),
+                    special_flags=pygame.BLEND_RGB_ADD,
+                )
+
+
         primeira_coluna = max(
             0,
             x_inicio // LARGURA_COLUNA,
